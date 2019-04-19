@@ -1,4 +1,4 @@
-import { queryExpense, addExpense } from '@/services/expense';
+import { queryExpense, addExpense } from '@/services/expense/expense';
 
 export default {
   /* 这个参数来定义命名空间的名称，作用是用来保护该命名空间下的数据，不会和别的models冲突。
