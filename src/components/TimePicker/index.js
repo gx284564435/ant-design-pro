@@ -13,10 +13,10 @@ class TimePicker extends PureComponent {
   };
 
   /* 禁止选择的日期 */
-  disabledDate = current =>
+  /* disabledDate = current =>
     // 没有处理逻辑，直接返回的简写；
     // Can not select days before today and today
-    current && current > moment().endOf('day');
+    current && current > moment().endOf('day'); */
 
   /* 禁止选择的时间 */
   /* disabledDateTime = () =>
@@ -32,10 +32,9 @@ class TimePicker extends PureComponent {
     }); */
 
   render() {
-    // 接收Form.getFieldDecorator传递的值
-    const { value } = this.props;
-    // 接收Form.getFieldDecorator传递的事件
-    const { onChange } = this.props;
+    // value: 接收Form.getFieldDecorator传递的值
+    // onChange: 接收Form.getFieldDecorator传递的事件
+    const { value, onChange, disabledDate, disabledDateTime } = this.props;
     const format = 'YYYY-MM-DD HH:mm:ss';
     // 修改时赋初始值
     let valueAttr;
@@ -52,8 +51,8 @@ class TimePicker extends PureComponent {
         format={format}
         {...valueAttr}
         onChange={onChange}
-        disabledDate={this.disabledDate}
-        // disabledTime={this.disabledDateTime}
+        disabledDate={disabledDate}
+        disabledTime={disabledDateTime}
         showTime={{ defaultValue: moment('00:00:00', 'HH:mm:ss') }}
       />
     );
