@@ -1,4 +1,4 @@
-import { generator } from '@/services/upload';
+import { generator, addExpense } from '@/services/expense/upload';
 
 export default {
   namespace: 'upload',
@@ -16,6 +16,10 @@ export default {
         type: 'save',
         payload: response,
       });
+      if (callback) callback();
+    },
+    *addExpense({ payload, callback }, { call }) {
+      yield call(addExpense, payload);
       if (callback) callback();
     },
   },

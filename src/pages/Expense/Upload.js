@@ -1,25 +1,22 @@
 import React, { PureComponent } from 'react';
 import { connect } from 'dva';
 import moment from 'moment';
-import { Layout, Form, Input, Icon, Button, Badge, Radio, Upload, message } from 'antd';
+import { Layout, Form, Input, Icon, Button, Radio, Upload, message } from 'antd';
 import { FormattedMessage } from 'umi/locale';
-import NoPagination from '@/components/StandardTable/NoPagination';
+import EditableTable from '@/components/Table/EditableTable';
 import styles from './Upload.less';
 
 const { Sider, Content } = Layout;
 
 const FormItem = Form.Item;
 
-const statusMap = ['error', 'success'];
-const status = ['支出', '收入'];
-
 /**
  * 上传组件
  */
 class PreviewOriginSize extends PureComponent {
   render() {
-    const { uploadFileList, action, data, handleUploadChange } = this.props;
-
+    const { uploadFileList, action, data, handleUploadChange, loading } = this.props;
+    const disabled = loading; // 图片识别是禁止再次上传，防止重复提交
     const onChange = ({ file }) => handleUploadChange(file);
     const params = {
       name: 'file',
@@ -28,6 +25,7 @@ class PreviewOriginSize extends PureComponent {
       multiple: false, // 是否允许多选
       data, // 上传所需额外参数
       onChange, // 值改变执行的方法
+      disabled,
     };
     return (
       <Upload {...params} fileList={uploadFileList}>
@@ -135,7 +133,6 @@ class UploadExpense extends PureComponent {
     formVisible: 'none',
     // *******************************表单 属性 end************************************************
     // *******************************表格 属性 start************************************************
-    selectedRows: [], // 表格已选的行
     // ******************************表格 属性 end***************************************************
   };
 
@@ -146,53 +143,43 @@ class UploadExpense extends PureComponent {
     {
       title: '用户',
       dataIndex: 'user',
+      editable: true, // 自定义属性，列是否可编辑
     },
     {
       title: '分类',
       dataIndex: 'classify',
+      editable: true,
     },
     {
       title: '商户',
       dataIndex: 'business',
-    },
-    {
-      title: '状态',
-      key: 'status',
-      render: (text, record) => {
-        let val;
-        if (record.money.startsWith('+')) {
-          val = '1';
-        } else {
-          val = '0';
-        }
-        return <Badge status={statusMap[val]} text={status[val]} />;
-      },
+      editable: true,
     },
     {
       title: '金额',
       dataIndex: 'money',
-      needTotal: true,
+      inputType: 'number', // 自定义属性，输入框类型，默认文本text
+      editable: true,
     },
     {
       title: '时间',
       dataIndex: 'time',
       render: val => <span>{moment(val).format('YYYY-MM-DD HH:mm:ss')}</span>,
-    },
-    {
-      title: '操作',
-      render: (text, record) => (
-        <a onClick={() => this.handleModalVisible(true, record, '编辑账单')}>修正</a>
-      ),
+      inputType: 'date',
+      editable: true,
     },
     {
       title: '备注',
       dataIndex: 'comment',
+      editable: true,
+      required: false, // 自定义属性，是否必填，默认true
     },
   ];
 
   // *******************************上传组件 方法 start************************************************
-  /*
+  /**
    * 文件上传改变事件
+   * @param file
    */
   handleUploadChange = file => {
     // 只能上传一个
@@ -217,6 +204,10 @@ class UploadExpense extends PureComponent {
   // ******************************上传组件 方法 end***************************************************
 
   // *******************************表单组件 方法 start************************************************
+  /**
+   * 表单提交
+   * @param fields
+   */
   handleSubmit = fields => {
     const { dispatch } = this.props;
     const { uploadFileList } = this.state;
@@ -235,9 +226,15 @@ class UploadExpense extends PureComponent {
   };
   // ******************************表单组件 方法 end***************************************************
 
-  handleSelectRows = rows => {
-    this.setState({
-      selectedRows: rows,
+  // ******************************表格组件 方法 start***************************************************
+
+  handleTableSave = fieldValues => {
+    const { dispatch } = this.props;
+    const params = this.replaceMoment(fieldValues);
+    dispatch({
+      type: 'upload/addExpense',
+      payload: params,
+      callback: () => message.success('操作成功'),
     });
   };
 
@@ -270,12 +267,18 @@ class UploadExpense extends PureComponent {
     return params;
   };
 
+  /* 禁止选择的日期 */
+  disabledDate = current =>
+    // 不能晚于当天
+    current && current > moment().endOf('day');
+  // ******************************表格组件 方法 end***************************************************
+
   render() {
     const {
       upload: { data },
       loading,
     } = this.props;
-    const { uploadFileList, imgMarginTop, imgWidth, formVisible, selectedRows } = this.state;
+    const { uploadFileList, imgMarginTop, imgWidth, formVisible } = this.state;
     return (
       <div>
         <Layout>
@@ -285,6 +288,7 @@ class UploadExpense extends PureComponent {
               action="/api/expense/upload"
               uploadFileList={uploadFileList}
               handleUploadChange={e => this.handleUploadChange(e)}
+              loading={loading}
             />
             {/* 表单组件 */}
             <UploadForm
@@ -305,15 +309,14 @@ class UploadExpense extends PureComponent {
           </Sider>
           <Layout>
             <Content>
-              {/* 列表 */}
-              <NoPagination
-                selectedRows={selectedRows}
-                rowKey={record => record.id}
-                loading={loading}
-                data={data}
+              {/* 可编辑表格 */}
+              <EditableTable
                 columns={this.columns}
-                onSelectRow={this.handleSelectRows}
-                rowClassName={this.setClassName}
+                dataSource={data.list}
+                rowKey="id"
+                pagination={false}
+                handleTableSave={fieldValues => this.handleTableSave(fieldValues)}
+                // disabledDate={this.disabledDate}
               />
             </Content>
           </Layout>
