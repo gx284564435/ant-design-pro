@@ -1,8 +1,30 @@
 import React, { PureComponent } from 'react';
 import { Table, Input, InputNumber, Form } from 'antd';
+import { Resizable } from 'react-resizable';
 import TimePicker from '@/components/TimePicker';
 
-// import styles from './index.less';
+import styles from './index.less';
+
+/**
+ * 可伸缩标题
+ * @param props
+ * @returns {*}
+ * @constructor
+ */
+const ResizeableTitle = props => {
+  const { onResize, width, ...restProps } = props;
+
+  // 无宽度属性，不处理
+  if (!width) {
+    return <th {...restProps} />;
+  }
+
+  return (
+    <Resizable width={width} height={0} onResize={onResize}>
+      <th {...restProps} className={styles.ResizeableTitle} />
+    </Resizable>
+  );
+};
 
 const FormItem = Form.Item;
 const EditableContext = React.createContext('');
@@ -74,6 +96,7 @@ class EditableTable extends PureComponent {
     this.state = {
       dataSource: props.dataSource, // 表格数据
       editingKey: '', // 正在编辑的行的主键
+      propColumns: props.propColumns, // props传递的columns
     };
     // 编辑列属性
     this.operationColumn = {
@@ -118,8 +141,7 @@ class EditableTable extends PureComponent {
    * @param nextProps
    * @param nextContext
    */
-  componentWillReceiveProps(nextProps, nextContext) {
-    nextContext.toString();
+  componentWillReceiveProps(nextProps) {
     this.setState({
       dataSource: nextProps.dataSource,
     });
@@ -181,9 +203,29 @@ class EditableTable extends PureComponent {
    * 编辑行
    * @param key
    */
-  edit(key) {
+  edit = key => {
     this.setState({ editingKey: key });
-  }
+  };
+
+  /**
+   * 可伸缩列，伸缩事件处理
+   * @param index 列的下标
+   * @param e 事件
+   * @param size 伸缩回调参数 包括伸缩后的高度、宽度
+   * @param columns state属性
+   * @returns {Function}
+   */
+  handleResize = index => (e, { size }) => {
+    // setState: function (Obj|Func(preState,props),[callback])
+    this.setState(({ propColumns }) => {
+      const nextColumns = [...propColumns];
+      nextColumns[index] = {
+        ...nextColumns[index],
+        width: size.width,
+      };
+      return { propColumns: nextColumns };
+    });
+  };
 
   render() {
     /**
@@ -192,36 +234,65 @@ class EditableTable extends PureComponent {
      * @type {{body: {cell: EditableCell}}}
      */
     const components = {
+      // 表格头
+      header: {
+        cell: ResizeableTitle,
+      },
+      // 表格body
       body: {
         cell: EditableCell,
       },
     };
 
-    const { dataSource } = this.state;
-    const { columns, rowKey, pagination, form, disabledDate } = this.props;
+    const { dataSource, propColumns } = this.state;
+    const {
+      rowKey,
+      pagination,
+      form,
+      disabledDate,
+      resizeableTitle,
+      rowClassName,
+      ...resProps
+    } = this.props;
 
     /**
      * 为可编辑列，添加onCell属性
      */
-    const tableColumns = [...columns, this.operationColumn].map(col => {
-      if (!col.editable) {
-        // 列不能编辑
-        return col;
+    const tableColumns = [...propColumns, this.operationColumn].map((col, index) => {
+      let res = { ...col };
+      // 可伸缩列
+      if (resizeableTitle) {
+        const onHeaderCell = {
+          onHeaderCell: column => ({
+            width: column.width,
+            onResize: this.handleResize(index),
+          }),
+        };
+        res = {
+          ...res,
+          ...onHeaderCell,
+        };
       }
-      return {
+      if (col.editable) {
         // 列能编辑
-        ...col,
-        // onCell	设置单元格属性	Function(record, rowIndex)	-
-        onCell: record => ({
-          record,
-          inputtype: col.inputType ? col.inputType : 'text',
-          dataIndex: col.dataIndex,
-          title: col.title,
-          editing: this.isEditing(record),
-          required: col.required === undefined ? true : col.required,
-          dateprops: col.inputType === 'date' ? { disabledDate } : null,
-        }),
-      };
+        const editableProps = {
+          // onCell	设置单元格属性	Function(record, rowIndex)	-
+          onCell: record => ({
+            record,
+            inputtype: col.inputType ? col.inputType : 'text',
+            dataIndex: col.dataIndex,
+            title: col.title,
+            editing: this.isEditing(record),
+            required: col.required === undefined ? true : col.required,
+            dateprops: col.inputType === 'date' ? { disabledDate } : null,
+          }),
+        };
+        res = {
+          ...res,
+          ...editableProps,
+        };
+      }
+      return res;
     });
 
     return (
@@ -234,8 +305,9 @@ class EditableTable extends PureComponent {
           bordered
           dataSource={dataSource}
           columns={tableColumns}
-          rowClassName="editable-row"
+          rowClassName={rowClassName}
           pagination={pagination}
+          {...resProps}
         />
       </EditableContext.Provider>
     );

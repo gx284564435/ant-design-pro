@@ -1,4 +1,15 @@
 @import '~antd/lib/style/themes/default.less';
+//支付宝单条账单高度
 .aliPay {
   height: 110px;
+}
+
+//覆盖antd表格组件的表头高度
+.headHeight107 {
+  :global {
+    // td.react-resizable span.react-resizable-handle
+    .ant-table-thead > tr {
+      height: 107px;
+    }
+  }
 }

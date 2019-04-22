@@ -1,1 +1,17 @@
-@import '~antd/lib/style/themes/default.less';
+// 可伸缩标题
+.ResizeableTitle:global(.react-resizable) {
+  // td.react-resizable
+  position: relative;
+
+  :global {
+    // td.react-resizable span.react-resizable-handle
+    .react-resizable-handle {
+      position: absolute;
+      width: 10px;
+      height: 100%;
+      bottom: 0;
+      right: -5px;
+      cursor: col-resize;
+    }
+  }
+}

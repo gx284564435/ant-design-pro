@@ -160,6 +160,7 @@ class UploadExpense extends PureComponent {
       dataIndex: 'money',
       inputType: 'number', // 自定义属性，输入框类型，默认文本text
       editable: true,
+      width: 50, // 宽度，可伸缩标题必须
     },
     {
       title: '时间',
@@ -167,6 +168,7 @@ class UploadExpense extends PureComponent {
       render: val => <span>{moment(val).format('YYYY-MM-DD HH:mm:ss')}</span>,
       inputType: 'date',
       editable: true,
+      width: 160,
     },
     {
       title: '备注',
@@ -239,11 +241,6 @@ class UploadExpense extends PureComponent {
   };
 
   /*
-   * rowClassName	表格行的类名	Function(record, index):string
-   */
-  setClassName = () => styles.aliPay;
-
-  /*
    *  替换日期moment为格式化字符串
    */
   replaceMoment = fields => {
@@ -267,10 +264,20 @@ class UploadExpense extends PureComponent {
     return params;
   };
 
-  /* 禁止选择的日期 */
+  /**
+   *  禁止选择的日期
+   * @param current
+   * @returns {*|boolean}
+   */
   disabledDate = current =>
     // 不能晚于当天
     current && current > moment().endOf('day');
+
+  /**
+   * rowClassName	表格行的类名	Function(record, index):string
+   */
+  rowClassName = () => styles.aliPay;
+
   // ******************************表格组件 方法 end***************************************************
 
   render() {
@@ -311,12 +318,17 @@ class UploadExpense extends PureComponent {
             <Content>
               {/* 可编辑表格 */}
               <EditableTable
-                columns={this.columns}
+                className={styles.headHeight107}
+                propColumns={this.columns}
                 dataSource={data.list}
                 rowKey="id"
                 pagination={false}
+                // 子组件传递参数，要接收
                 handleTableSave={fieldValues => this.handleTableSave(fieldValues)}
-                // disabledDate={this.disabledDate}
+                disabledDate={this.disabledDate}
+                resizeableTitle // 可伸缩标题
+                // 子组件回调参数，不接收
+                rowClassName={() => this.rowClassName()}
               />
             </Content>
           </Layout>
