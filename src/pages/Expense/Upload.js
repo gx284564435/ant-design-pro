@@ -160,7 +160,7 @@ class UploadExpense extends PureComponent {
       dataIndex: 'money',
       inputType: 'number', // 自定义属性，输入框类型，默认文本text
       editable: true,
-      width: 50, // 宽度，可伸缩标题必须
+      width: 70, // 宽度，可伸缩标题必须
     },
     {
       title: '时间',

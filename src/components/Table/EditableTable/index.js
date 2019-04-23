@@ -2,6 +2,7 @@ import React, { PureComponent } from 'react';
 import { Table, Input, InputNumber, Form } from 'antd';
 import { Resizable } from 'react-resizable';
 import TimePicker from '@/components/TimePicker';
+import { deepCopy } from '@/utils/ArrayUtil';
 
 import styles from './index.less';
 
@@ -93,10 +94,25 @@ class EditableCell extends React.Component {
 class EditableTable extends PureComponent {
   constructor(props) {
     super(props);
+    const { propColumns } = props;
+    const stateColumns = deepCopy(propColumns);
+    // 必填项前加*
+    stateColumns.map((col, index) => {
+      // 未指定为false，都认为必填
+      if (col.required !== false) {
+        stateColumns[index].title = (
+          <span>
+            <span style={{ color: 'red' }}>*</span>
+            {stateColumns[index].title}
+          </span>
+        );
+      }
+      return col;
+    });
     this.state = {
       dataSource: props.dataSource, // 表格数据
       editingKey: '', // 正在编辑的行的主键
-      propColumns: props.propColumns, // props传递的columns
+      stateColumns, // 转换props传递的columns后的state的列属性
     };
     // 编辑列属性
     this.operationColumn = {
@@ -217,13 +233,13 @@ class EditableTable extends PureComponent {
    */
   handleResize = index => (e, { size }) => {
     // setState: function (Obj|Func(preState,props),[callback])
-    this.setState(({ propColumns }) => {
-      const nextColumns = [...propColumns];
+    this.setState(({ stateColumns }) => {
+      const nextColumns = [...stateColumns];
       nextColumns[index] = {
         ...nextColumns[index],
         width: size.width,
       };
-      return { propColumns: nextColumns };
+      return { stateColumns: nextColumns };
     });
   };
 
@@ -244,7 +260,7 @@ class EditableTable extends PureComponent {
       },
     };
 
-    const { dataSource, propColumns } = this.state;
+    const { dataSource, stateColumns } = this.state;
     const {
       rowKey,
       pagination,
@@ -256,9 +272,12 @@ class EditableTable extends PureComponent {
     } = this.props;
 
     /**
-     * 为可编辑列，添加onCell属性
+     * 列属性扩展
+     * 1.为可伸缩表头，添加onHeaderCell属性
+     * 2.为可编辑列，添加onCell属性
      */
-    const tableColumns = [...propColumns, this.operationColumn].map((col, index) => {
+    const tableColumns = [...stateColumns, this.operationColumn].map((col, index) => {
+      const { propColumns } = this.props;
       let res = { ...col };
       // 可伸缩列
       if (resizeableTitle) {
@@ -281,7 +300,7 @@ class EditableTable extends PureComponent {
             record,
             inputtype: col.inputType ? col.inputType : 'text',
             dataIndex: col.dataIndex,
-            title: col.title,
+            title: propColumns[index].title, // 使用props的未添加必填标志的title属性
             editing: this.isEditing(record),
             required: col.required === undefined ? true : col.required,
             dateprops: col.inputType === 'date' ? { disabledDate } : null,
